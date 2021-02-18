@@ -1,0 +1,43 @@
+{:paths ["src/clj" "src/cljc" "resources"]
+
+ :deps {;; our beloved
+        org.clojure/clojure                             {:mvn/version "1.10.1"}
+        org.clojure/core.async                          {:mvn/version "1.2.603"}
+
+        ;; http client
+        clj-http/clj-http                               {:mvn/version "3.10.3"}
+
+        ;; schema system
+        metosin/malli                                   {:mvn/version "0.2.1"}
+
+        ;; dependency injection
+        integrant/integrant                             {:mvn/version "0.7.0"}
+
+        ;; utilities
+        metosin/jsonista                                {:mvn/version "0.2.7"}
+        camel-snake-kebab/camel-snake-kebab             {:mvn/version "0.4.2"}
+        luchiniatwork/ambiente                          {:mvn/version "0.1.4"}}
+
+ :aliases
+ {:dev
+  {:extra-paths ["dev"]
+   :extra-deps
+   {integrant/repl                                 {:mvn/version "0.3.1"}}}
+
+  :test
+  {:extra-paths ["test"]
+   :extra-deps
+   {lambdaisland/kaocha                            {:mvn/version "1.0.732"}}
+   :main-opts
+   ["-m" "kaocha.runner"]}
+
+  :cambada
+  {:extra-deps
+   {luchiniatwork/cambada                          {:mvn/version "1.0.5"}}}
+
+  :depstar
+  {:extra-deps
+   {seancorfield/depstar                           {:mvn/version "1.1.136"}}
+   :ns-default hf.depstar
+   :exec-args {:jar target/storie-ai.jar
+               :no-pom true}}}}
