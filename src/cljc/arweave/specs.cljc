@@ -2,6 +2,21 @@
   (:require [malli.core :as m]
             [clojure.string :as s]))
 
+(def AnomalyCategory
+  [:enum
+   :arweave.anomaly/tx-pending
+   :arweave.anomaly/tx-not-found
+   :arweave.anomaly/tx-failed
+   :arweave.anomaly/tx-invalid
+   :arweave.anomaly/conn-invalid
+   :arweave.anomaly/conn-error])
+
+(def Anomaly
+  [:map
+   [:anomaly/category AnomalyCategory]
+   [:anomaly/message string?]
+   [:anomaly/provenance {:optional true} map?]])
+
 (def Connection
   [:map
    [:host string?]
@@ -10,16 +25,18 @@
    [:timeout pos-int?]])
 
 (def NodeInfo
-  [:map
-   [:queue-length integer?]
-   [:peers integer?]
-   [:release integer?]
-   [:current string?]
-   [:blocks number?]
-   [:network string?]
-   [:version integer?]
-   [:height integer?]
-   [:node-state-latency integer?]])
+  [:or
+   [:map
+    [:queue-length integer?]
+    [:peers integer?]
+    [:release integer?]
+    [:current string?]
+    [:blocks number?]
+    [:network string?]
+    [:version integer?]
+    [:height integer?]
+    [:node-state-latency integer?]]
+   Anomaly])
 
 (def NodePeers
   [:vector {:min 1}
