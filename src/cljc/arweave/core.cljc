@@ -108,7 +108,6 @@
              (api-raw-get conn (url conn tx-id)
                           {:expected-status-fn #(get #{200 202 400 404 410} %)
                            :as as})]
-         (clojure.pprint/pprint status)
          (if (anomaly? resp)
            resp
            (case status
@@ -121,3 +120,8 @@
                   :anomaly/message "TX failed"}
              {:anomaly/category :arweave.anomaly/tx-invalid
               :anomaly/message "TX invalid"}))))))
+
+(defn verify
+  [conn tx-id]
+  (or (validate-conn conn)
+      ))

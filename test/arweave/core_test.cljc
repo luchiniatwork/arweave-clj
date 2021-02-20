@@ -97,7 +97,9 @@
              (take 17 resp)))
       (is (= '(\< \/ \b \o \d \y \> \newline \< \/ \h \t \m \l \>)
              (take-last 15 resp)))
-      (is (= 12517 (count resp)))))
+      (is (= 12517 (count resp)))
+      (is (and (boolean? (arweave/verify resp))
+               (= true (arweave/verify resp))))))
 
   (testing "successful tx get (:as :utf-8)"
     (let [resp (<!! (arweave/get (arweave/create-conn) live-data-tx-id {:as :utf-8}))]
