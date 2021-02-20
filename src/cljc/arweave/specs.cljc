@@ -61,3 +61,25 @@
    [:map
     [:status [:fn #(not= 200 %)]]
     [:confirmed nil?]]])
+
+(def Tag
+  [:map
+   [:name string?]
+   [:value string?]])
+
+(def Transaction
+  [:or
+   [:map
+    [:format [:enum 1 2]]
+    [:id string?]
+    [:last-tx string?]
+    [:owner string?]
+    [:tags [:vector Tag]]
+    [:target string?]
+    [:quantity string?]
+    [:data bytes?]
+    [:reward string?]
+    [:signature string?]
+    [:data-size string?]
+    [:data-root string?]]
+   Anomaly])
