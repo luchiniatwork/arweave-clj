@@ -90,19 +90,8 @@
       (is (= :arweave.anomaly/conn-error (:anomaly/category resp))))))
 
 (deftest transaction-getting
-  (testing "successful tx get (default)"
-    (let [resp (<!! (arweave/get (arweave/create-conn) live-data-tx-id))]
-      (is (string? resp))
-      (is (= '(\newline \< \! \D \O \C \T \Y \P \E \space \h \t \m \l \> \newline)
-             (take 17 resp)))
-      (is (= '(\< \/ \b \o \d \y \> \newline \< \/ \h \t \m \l \>)
-             (take-last 15 resp)))
-      (is (= 12517 (count resp)))
-      (is (and (boolean? (arweave/verify resp))
-               (= true (arweave/verify resp))))))
-
-  (testing "successful tx get (:as :utf-8)"
-    (let [resp (<!! (arweave/get (arweave/create-conn) live-data-tx-id {:as :utf-8}))]
+  (testing "successful tx get-data (default)"
+    (let [resp (<!! (arweave/get-data (arweave/create-conn) live-data-tx-id))]
       (is (string? resp))
       (is (= '(\newline \< \! \D \O \C \T \Y \P \E \space \h \t \m \l \> \newline)
              (take 17 resp)))
@@ -110,8 +99,35 @@
              (take-last 15 resp)))
       (is (= 12517 (count resp)))))
 
-  (testing "successful tx get (:as :byte-array)"
-    (let [resp (<!! (arweave/get (arweave/create-conn) live-data-tx-id {:as :byte-array}))]
+  (testing "successful tx get"
+    (let [resp (<!! (arweave/get (arweave/create-conn) live-data-tx-id))]
+      (is (nil? (m/explain specs/Transaction resp)))
+      (is (= [{:name "Q29udGVudC1UeXBl" :value "dGV4dC9odG1s"}
+              {:name "VXNlci1BZ2VudA" :value "QXJ3ZWF2ZURlcGxveS8xLjEuMA"}]
+             (:tags resp)))
+      (is (= "12517" (:data-size resp)))
+      (is (= live-data-tx-id (:id resp)))
+
+      #_(is (string? resp))
+      #_(is (= '(\newline \< \! \D \O \C \T \Y \P \E \space \h \t \m \l \> \newline)
+               (take 17 resp)))
+      #_(is (= '(\< \/ \b \o \d \y \> \newline \< \/ \h \t \m \l \>)
+               (take-last 15 resp)))
+      #_(is (= 12517 (count resp)))
+      #_(is (and (boolean? (arweave/verify resp))
+                 (= true (arweave/verify resp))))))
+
+  (testing "successful tx get-data (:as :utf-8)"
+    (let [resp (<!! (arweave/get-data (arweave/create-conn) live-data-tx-id {:as :utf-8}))]
+      (is (string? resp))
+      (is (= '(\newline \< \! \D \O \C \T \Y \P \E \space \h \t \m \l \> \newline)
+             (take 17 resp)))
+      (is (= '(\< \/ \b \o \d \y \> \newline \< \/ \h \t \m \l \>)
+             (take-last 15 resp)))
+      (is (= 12517 (count resp)))))
+
+  (testing "successful tx get-data (:as :byte-array)"
+    (let [resp (<!! (arweave/get-data (arweave/create-conn) live-data-tx-id {:as :byte-array}))]
       (is (bytes? resp))
       (is (= '(10 60 33 68 79 67 84 89 80 69 32 104 116 109 108 62 10 60 104 116)
              (take 20 resp)))
@@ -120,36 +136,36 @@
       (is (= 12517 (count resp)))))
 
   (testing "non existing messed up tx"
-    (let [resp (<!! (arweave/get (arweave/create-conn)
-                                 "foobar"))]
+    (let [resp (<!! (arweave/get-data (arweave/create-conn)
+                                      "foobar"))]
       (is (m/validate specs/Anomaly resp))
       (is (or (= :arweave.anomaly/tx-invalid (:anomaly/category resp))
               (= :arweave.anomaly/tx-not-found (:anomaly/category resp))))))
 
   (testing "non existing tx"
-    (let [resp (<!! (arweave/get (arweave/create-conn)
-                                 "foobarfoobarfoobar12312312312312asdasdasdasdasd3123"))]
+    (let [resp (<!! (arweave/get-data (arweave/create-conn)
+                                      "foobarfoobarfoobar12312312312312asdasdasdasdasd3123"))]
       (is (m/validate specs/Anomaly resp))
       (is (or (= :arweave.anomaly/tx-invalid (:anomaly/category resp))
               (= :arweave.anomaly/tx-not-found (:anomaly/category resp))))))
 
   (testing "wrong conn tx"
-    (let [resp (<!! (arweave/get nil live-data-tx-id))]
+    (let [resp (<!! (arweave/get-data nil live-data-tx-id))]
       (is (m/validate specs/Anomaly resp))
       (is (= :arweave.anomaly/conn-invalid (:anomaly/category resp)))))
 
   (testing "unavailable conn tx"
-    (let [resp (<!! (arweave/get (arweave/create-conn {:host ""}) live-data-tx-id))]
+    (let [resp (<!! (arweave/get-data (arweave/create-conn {:host ""}) live-data-tx-id))]
       (is (m/validate specs/Anomaly resp))
       (is (= :arweave.anomaly/conn-error (:anomaly/category resp)))))
 
-  (testing "successful tx get large tx (:as :byte-array)"
-    (let [resp (<!! (arweave/get (arweave/create-conn)
-                                 live-data-tx-id-large
-                                 {:as :byte-array}))]
-      (is (bytes? resp))
-      (is (= '(0 0 0 24 102 116 121 112 109 112)
-             (take 10 resp)))
-      (is (= '(-80 54 -79 114 -106 76 102 39 49 -36)
-             (take-last 10 resp)))
-      (is (= 14166765 (count resp))))))
+  #_(testing "successful tx get large tx (:as :byte-array)"
+      (let [resp (<!! (arweave/get-data (arweave/create-conn)
+                                        live-data-tx-id-large
+                                        {:as :byte-array}))]
+        (is (bytes? resp))
+        (is (= '(0 0 0 24 102 116 121 112 109 112)
+               (take 10 resp)))
+        (is (= '(-80 54 -79 114 -106 76 102 39 49 -36)
+               (take-last 10 resp)))
+        (is (= 14166765 (count resp))))))

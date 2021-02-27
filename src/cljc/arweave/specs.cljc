@@ -72,13 +72,13 @@
    [:map
     [:format [:enum 1 2]]
     [:id string?]
-    [:last-tx string?]
+    [:last-tx string?] ;;aka anchor
     [:owner string?]
     [:tags [:vector Tag]]
     [:target string?]
     [:quantity string?]
-    [:data bytes?]
-    [:reward string?]
+    [:data string?]
+    [:reward string?] ;;aka reward
     [:signature string?]
     [:data-size string?]
     [:data-root string?]]

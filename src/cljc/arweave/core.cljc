@@ -2,6 +2,7 @@
   (:refer-clojure :exclude [get])
   (:require [arweave.http :as http]
             [arweave.specs :as specs]
+            [arweave.utils :as utils]
             [camel-snake-kebab.core :as csk]
             [clojure.core.async :refer [<! >! <!! >!! chan go go-loop]]
             [jsonista.core :as json]
@@ -17,6 +18,11 @@
   (when (not (m/validate specs/Connection conn))
     {:anomaly/category :arweave.anomaly/conn-invalid
      :anomaly/message "Invalid connection"}))
+
+(defn ^:private validate-tx [tx]
+  (when (not (m/validate specs/Transaction tx))
+    {:anomaly/category :arweave.anomaly/tx-invalid
+     :anomaly/message "Invalid TX"}))
 
 (defn ^:private api-raw-get
   ([conn url]
@@ -100,26 +106,62 @@
             {:status status
              :confirmed nil})))))
 
-(defn get
+(defn ^:private possible-tx-status [status]
+  (clojure.core/get #{200 202 400 404 410} status))
+
+(defn ^:private case-tx-anomalies [status positive-fn]
+  (case status
+    200 (positive-fn)
+    202 {:anomaly/category :arweave.anomaly/tx-pending
+         :anomaly/message "TX pending"}
+    404 {:anomaly/category :arweave.anomaly/tx-not-found
+         :anomaly/message "TX not found"}
+    410 {:anomaly/category :arweave.anomaly/tx-failed
+         :anomaly/message "TX failed"}
+    {:anomaly/category :arweave.anomaly/tx-invalid
+     :anomaly/message "TX invalid"}))
+
+(defn get-data
   ([conn tx-id]
-   (get conn tx-id {:as :utf-8}))
+   (get-data conn tx-id {:as :utf-8}))
   ([conn tx-id {:keys [as]}]
    (go (let [{:keys [status body] :as resp}
              (api-raw-get conn (url conn tx-id)
-                          {:expected-status-fn #(get #{200 202 400 404 410} %)
+                          {:expected-status-fn possible-tx-status
                            :as as})]
          (if (anomaly? resp)
            resp
-           (case status
-             200 body
-             202 {:anomaly/category :arweave.anomaly/tx-pending
-                  :anomaly/message "TX pending"}
-             404 {:anomaly/category :arweave.anomaly/tx-not-found
-                  :anomaly/message "TX not found"}
-             410 {:anomaly/category :arweave.anomaly/tx-failed
-                  :anomaly/message "TX failed"}
-             {:anomaly/category :arweave.anomaly/tx-invalid
-              :anomaly/message "TX invalid"}))))))
+           (case-tx-anomalies status (fn [] body)))))))
+
+(defn get
+  [conn tx-id]
+  (go (let [{:keys [status body] :as resp}
+            (api-get conn (url conn (str "tx/" tx-id))
+                     {:expected-status-fn possible-tx-status})]
+        (if (anomaly? resp)
+          resp
+          (case-tx-anomalies
+           status
+           (fn [] (let [data-size (Integer/parseInt (:data-size body))]
+                    (cond-> body
+                      (and (>= (:format body) 2)
+                           (> data-size 0)
+                           (<= data-size (* 1024 1024 12)))
+                      (assoc :data (utils/str->base64url (<! (get-data conn tx-id))))))))))))
+
+(defn decode-tx
+  ([tx]
+   (decode-tx tx [:data :data-root :tags :owner :signature]))
+  ([tx fields]
+   (or (validate-tx tx)
+       (reduce (fn [m field]
+                 (assoc m field (if (= :tags field)
+                                  (mapv (fn [i]
+                                          {:name (utils/base64url->str (:name i))
+                                           :value (utils/base64url->str (:value i))})
+                                        (-> tx field))
+                                  (utils/base64url->str (-> tx field)))))
+               tx fields))))
 
 (defn verify
   [conn tx-id]
